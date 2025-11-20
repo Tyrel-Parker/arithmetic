@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Practice</title>
+    <style>
+        :root {
+            /* Default theme - easily customizable */
+            --primary-color: #FF6B9D;
+            --secondary-color: #C44569;
+            --background-color: #FFF0F5;
+            --card-color: #FFFFFF;
+            --text-color: #333333;
+            --button-text: #FFFFFF;
+            --success-color: #4CAF50;
+            --error-color: #F44336;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Comic Sans MS', 'Chalkboard', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: var(--background-color);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        h1, h2 {
+            color: var(--secondary-color);
+            text-align: center;
+        }
+
+        .card {
+            background: var(--card-color);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-color);
+            font-weight: bold;
+        }
+
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 3px solid var(--primary-color);
+            border-radius: 10px;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .operation-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .op-btn {
+            padding: 20px;
+            font-size: 24px;
+            border: none;
+            border-radius: 10px;
+            background: var(--primary-color);
+            color: var(--button-text);
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .op-btn:hover {
+            background: var(--secondary-color);
+            transform: scale(1.05);
+        }
+
+        .op-btn.selected {
+            background: var(--secondary-color);
+            transform: scale(1.1);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+        }
+
+        .mode-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .mode-btn {
+            padding: 15px;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            background: var(--primary-color);
+            color: var(--button-text);
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .mode-btn:hover {
+            background: var(--secondary-color);
+            transform: scale(1.02);
+        }
+
+        .question-count {
+            margin-top: 15px;
+        }
+
+        /* Practice Screen */
+        .problem-display {
+            font-size: 36px;
+            text-align: center;
+            padding: 30px;
+            color: var(--text-color);
+        }
+
+        .answer-input {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .answer-field {
+            font-size: 28px;
+            padding: 15px;
+            width: 120px;
+            text-align: center;
+            border: 3px solid var(--primary-color);
+            border-radius: 10px;
+        }
+
+        .remainder-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .remainder-label {
+            font-size: 24px;
+            color: var(--text-color);
+        }
+
+        .calculator {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .calc-btn {
+            padding: 20px;
+            font-size: 24px;
+            border: none;
+            border-radius: 10px;
+            background: var(--primary-color);
+            color: var(--button-text);
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .calc-btn:hover {
+            background: var(--secondary-color);
+        }
+
+        .calc-btn:active {
+            transform: scale(0.95);
+        }
+
+        .calc-btn.wide {
+            grid-column: span 2;
+        }
+
+        .calc-btn.enter {
+            background: var(--success-color);
+        }
+
+        .calc-btn.backspace {
+            background: #FF9800;
+        }
+
+        .calc-btn.negative {
+            background: #9C27B0;
+        }
+
+        .feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 100px;
+            z-index: 1000;
+            animation: feedbackPop 0.5s ease-out;
+        }
+
+        @keyframes feedbackPop {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .feedback.correct {
+            color: var(--success-color);
+        }
+
+        .feedback.incorrect {
+            color: var(--error-color);
+        }
+
+        .nav-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            background: var(--secondary-color);
+            color: var(--button-text);
+            cursor: pointer;
+        }
+
+        .stop-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            background: var(--error-color);
+            color: var(--button-text);
+            cursor: pointer;
+        }
+
+        /* Results Screen */
+        .results {
+            text-align: center;
+        }
+
+        .results h2 {
+            font-size: 28px;
+        }
+
+        .stat {
+            font-size: 24px;
+            margin: 15px 0;
+            color: var(--text-color);
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+
+        .action-btn {
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            background: var(--primary-color);
+            color: var(--button-text);
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        .action-btn:hover {
+            background: var(--secondary-color);
+        }
+
+        /* Theme Screen */
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .theme-btn {
+            padding: 20px;
+            border: 3px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: transform 0.1s;
+        }
+
+        .theme-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .theme-btn.selected {
+            border-color: #333;
+        }
+
+        .custom-colors {
+            margin-top: 20px;
+        }
+
+        .color-picker {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .color-picker input[type="color"] {
+            width: 50px;
+            height: 40px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .settings-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            background: var(--secondary-color);
+            color: var(--button-text);
+            cursor: pointer;
+        }
+
+        .active-input {
+            border-color: var(--success-color) !important;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Home Screen -->
+        <div id="home-screen" class="screen active">
+            <h1>🔢 Math Practice! 🌟</h1>
+            
+            <div class="card">
+                <label for="max-number">Maximum Number:</label>
+                <input type="number" id="max-number" value="20" min="1" max="1000">
+            </div>
+
+            <div class="card">
+                <label>Choose Operation:</label>
+                <div class="operation-buttons">
+                    <button class="op-btn" data-op="+" onclick="selectOperation('+')">+</button>
+                    <button class="op-btn" data-op="-" onclick="selectOperation('-')">−</button>
+                    <button class="op-btn" data-op="*" onclick="selectOperation('*')">×</button>
+                    <button class="op-btn" data-op="/" onclick="selectOperation('/')">÷</button>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="allow-negatives">
+                    <label for="allow-negatives" style="margin: 0;">Allow ± (negative numbers)</label>
+                </div>
+                
+                <div class="checkbox-group" id="remainder-option" style="display: none;">
+                    <input type="checkbox" id="allow-remainders">
+                    <label for="allow-remainders" style="margin: 0;">Allow remainders</label>
+                </div>
+            </div>
+
+            <div class="card">
+                <label>Choose Mode:</label>
+                <div class="mode-buttons">
+                    <button class="mode-btn" onclick="startMode('timed')">⏱️ Timed (Set Questions)</button>
+                    <button class="mode-btn" onclick="startMode('infinite')">♾️ Infinite Practice</button>
+                    <button class="mode-btn" onclick="startMode('running')">📊 Running Average</button>
+                </div>
+                
+                <div class="question-count">
+                    <label for="num-questions">Questions for Timed Mode:</label>
+                    <input type="number" id="num-questions" value="10" min="1" max="100">
+                </div>
+            </div>
+
+            <button class="settings-btn" onclick="showScreen('theme-screen')">🎨</button>
+        </div>
+
+        <!-- Practice Screen -->
+        <div id="practice-screen" class="screen">
+            <button class="nav-btn" onclick="goHome()">🏠 Home</button>
+            
+            <div class="card">
+                <div class="problem-display" id="problem-display">5 + 3 = ?</div>
+                
+                <div class="answer-input">
+                    <input type="text" class="answer-field" id="answer-input" readonly>
+                    <div class="remainder-section" id="remainder-section" style="display: none;">
+                        <span class="remainder-label">R</span>
+                        <input type="text" class="answer-field" id="remainder-input" readonly style="width: 80px;">
+                    </div>
+                </div>
+                
+                <div class="calculator">
+                    <button class="calc-btn" onclick="inputNumber('1')">1</button>
+                    <button class="calc-btn" onclick="inputNumber('2')">2</button>
+                    <button class="calc-btn" onclick="inputNumber('3')">3</button>
+                    <button class="calc-btn" onclick="inputNumber('4')">4</button>
+                    <button class="calc-btn" onclick="inputNumber('5')">5</button>
+                    <button class="calc-btn" onclick="inputNumber('6')">6</button>
+                    <button class="calc-btn" onclick="inputNumber('7')">7</button>
+                    <button class="calc-btn" onclick="inputNumber('8')">8</button>
+                    <button class="calc-btn" onclick="inputNumber('9')">9</button>
+                    <button class="calc-btn negative" onclick="toggleNegative()">+/−</button>
+                    <button class="calc-btn" onclick="inputNumber('0')">0</button>
+                    <button class="calc-btn backspace" onclick="backspace()">⌫</button>
+                    <button class="calc-btn wide" onclick="switchInput()" id="switch-btn" style="display: none;">↔️ R</button>
+                    <button class="calc-btn enter" onclick="submitAnswer()">✓</button>
+                </div>
+                
+                <button class="stop-btn" id="stop-btn" style="display: none;" onclick="stopPractice()">🛑 Stop</button>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="results-screen" class="screen">
+            <button class="nav-btn" onclick="goHome()">🏠 Home</button>
+            
+            <div class="card results">
+                <h2>🎉 Great Job! 🎉</h2>
+                
+                <div class="stat">
+                    Questions: <span class="stat-value" id="result-questions">0</span>
+                </div>
+                <div class="stat">
+                    Total Time: <span class="stat-value" id="result-time">0:00</span>
+                </div>
+                <div class="stat">
+                    Average: <span class="stat-value" id="result-avg">0.0s</span>
+                </div>
+                
+                <button class="action-btn" onclick="playAgain()">🔄 Play Again</button>
+                <button class="action-btn" onclick="goHome()">🏠 Home</button>
+            </div>
+        </div>
+
+        <!-- Theme Screen -->
+        <div id="theme-screen" class="screen">
+            <button class="nav-btn" onclick="showScreen('home-screen')">← Back</button>
+            
+            <h1>🎨 Choose Theme</h1>
+            
+            <div class="card">
+                <label>Preset Themes:</label>
+                <div class="theme-grid">
+                    <button class="theme-btn" style="background: #FF6B9D; color: white;" onclick="applyTheme('princess')">👑 Princess Pink</button>
+                    <button class="theme-btn" style="background: #4FC3F7; color: white;" onclick="applyTheme('ocean')">🌊 Ocean Blue</button>
+                    <button class="theme-btn" style="background: #81C784; color: white;" onclick="applyTheme('jungle')">🌴 Jungle Green</button>
+                    <button class="theme-btn" style="background: #FFB74D; color: white;" onclick="applyTheme('sunshine')">☀️ Sunshine</button>
+                    <button class="theme-btn" style="background: #BA68C8; color: white;" onclick="applyTheme('grape')">🍇 Grape</button>
+                    <button class="theme-btn" style="background: #F06292; color: white;" onclick="applyTheme('bubblegum')">🍬 Bubblegum</button>
+                </div>
+                
+                <div class="custom-colors">
+                    <label>Custom Colors:</label>
+                    <div class="color-picker">
+                        <input type="color" id="custom-primary" value="#FF6B9D">
+                        <span>Main Color</span>
+                    </div>
+                    <div class="color-picker">
+                        <input type="color" id="custom-secondary" value="#C44569">
+                        <span>Accent Color</span>
+                    </div>
+                    <div class="color-picker">
+                        <input type="color" id="custom-background" value="#FFF0F5">
+                        <span>Background</span>
+                    </div>
+                    <button class="action-btn" onclick="applyCustomTheme()">Apply Custom</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="feedback" class="feedback" style="display: none;"></div>
+
+    <script>
+        // ========== CONFIGURABLE VARIABLES ==========
+        const FEEDBACK_DELAY_MS = 500; // Time to show green checkmark before next question
+        // ============================================
+
+        // Game state
+        let selectedOperation = null;
+        let currentMode = null;
+        let maxNumber = 20;
+        let allowNegatives = false;
+        let allowRemainders = false;
+        let numQuestions = 10;
+        
+        // Current problem
+        let currentAnswer = null;
+        let currentRemainder = null;
+        let activeInput = 'answer'; // 'answer' or 'remainder'
+        
+        // Stats
+        let questionsAnswered = 0;
+        let totalTime = 0;
+        let questionStartTime = 0;
+        let feedbackTime = 0; // Time spent showing feedback to subtract
+
+        // Themes
+        const themes = {
+            princess: {
+                primary: '#FF6B9D',
+                secondary: '#C44569',
+                background: '#FFF0F5'
+            },
+            ocean: {
+                primary: '#4FC3F7',
+                secondary: '#0288D1',
+                background: '#E1F5FE'
+            },
+            jungle: {
+                primary: '#81C784',
+                secondary: '#388E3C',
+                background: '#E8F5E9'
+            },
+            sunshine: {
+                primary: '#FFB74D',
+                secondary: '#F57C00',
+                background: '#FFF8E1'
+            },
+            grape: {
+                primary: '#BA68C8',
+                secondary: '#7B1FA2',
+                background: '#F3E5F5'
+            },
+            bubblegum: {
+                primary: '#F06292',
+                secondary: '#C2185B',
+                background: '#FCE4EC'
+            }
+        };
+
+        // Load saved theme
+        function loadSavedTheme() {
+            const saved = localStorage.getItem('mathAppTheme');
+            if (saved) {
+                const theme = JSON.parse(saved);
+                document.documentElement.style.setProperty('--primary-color', theme.primary);
+                document.documentElement.style.setProperty('--secondary-color', theme.secondary);
+                document.documentElement.style.setProperty('--background-color', theme.background);
+            }
+        }
+
+        // Apply preset theme
+        function applyTheme(themeName) {
+            const theme = themes[themeName];
+            document.documentElement.style.setProperty('--primary-color', theme.primary);
+            document.documentElement.style.setProperty('--secondary-color', theme.secondary);
+            document.documentElement.style.setProperty('--background-color', theme.background);
+            localStorage.setItem('mathAppTheme', JSON.stringify(theme));
+        }
+
+        // Apply custom theme
+        function applyCustomTheme() {
+            const theme = {
+                primary: document.getElementById('custom-primary').value,
+                secondary: document.getElementById('custom-secondary').value,
+                background: document.getElementById('custom-background').value
+            };
+            document.documentElement.style.setProperty('--primary-color', theme.primary);
+            document.documentElement.style.setProperty('--secondary-color', theme.secondary);
+            document.documentElement.style.setProperty('--background-color', theme.background);
+            localStorage.setItem('mathAppTheme', JSON.stringify(theme));
+        }
+
+        // Screen navigation
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function goHome() {
+            showScreen('home-screen');
+            resetGame();
+        }
+
+        // Operation selection
+        function selectOperation(op) {
+            selectedOperation = op;
+            document.querySelectorAll('.op-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.op === op);
+            });
+            
+            // Show remainder option only for division
+            document.getElementById('remainder-option').style.display = op === '/' ? 'block' : 'none';
+        }
+
+        // Start game mode
+        function startMode(mode) {
+            if (!selectedOperation) {
+                alert('Please select an operation first!');
+                return;
+            }
+            
+            currentMode = mode;
+            maxNumber = parseInt(document.getElementById('max-number').value) || 20;
+            allowNegatives = document.getElementById('allow-negatives').checked;
+            allowRemainders = document.getElementById('allow-remainders').checked && selectedOperation === '/';
+            numQuestions = parseInt(document.getElementById('num-questions').value) || 10;
+            
+            // Reset stats
+            questionsAnswered = 0;
+            totalTime = 0;
+            feedbackTime = 0;
+            
+            // Show/hide elements based on mode
+            const stopBtn = document.getElementById('stop-btn');
+            stopBtn.style.display = (mode === 'running' || mode === 'infinite') ? 'block' : 'none';
+            
+            // Show/hide remainder input
+            document.getElementById('remainder-section').style.display = allowRemainders ? 'flex' : 'none';
+            document.getElementById('switch-btn').style.display = allowRemainders ? 'block' : 'none';
+            
+            showScreen('practice-screen');
+            generateProblem();
+        }
+
+        // Generate random number with optional negatives
+        function randomNumber(max, allowNeg) {
+            let num = Math.floor(Math.random() * (max + 1));
+            if (allowNeg && Math.random() < 0.5) {
+                num = -num;
+            }
+            return num;
+        }
+
+        // Generate a new problem
+        function generateProblem() {
+            let num1, num2, answer, remainder = 0;
+            
+            switch (selectedOperation) {
+                case '+':
+                    // Generate numbers that add up to at most maxNumber (absolute value)
+                    if (allowNegatives) {
+                        // For negatives, we need answer's absolute value <= maxNumber
+                        do {
+                            num1 = randomNumber(maxNumber, true);
+                            num2 = randomNumber(maxNumber, true);
+                            answer = num1 + num2;
+                        } while (Math.abs(answer) > maxNumber);
+                    } else {
+                        num1 = Math.floor(Math.random() * (maxNumber + 1));
+                        num2 = Math.floor(Math.random() * (maxNumber - num1 + 1));
+                        answer = num1 + num2;
+                    }
+                    break;
+                    
+                case '-':
+                    if (allowNegatives) {
+                        // For negatives, answer's absolute value <= maxNumber
+                        do {
+                            num1 = randomNumber(maxNumber, true);
+                            num2 = randomNumber(maxNumber, true);
+                            answer = num1 - num2;
+                        } while (Math.abs(answer) > maxNumber);
+                    } else {
+                        // Result must be positive
+                        num1 = Math.floor(Math.random() * (maxNumber + 1));
+                        num2 = Math.floor(Math.random() * (num1 + 1));
+                        answer = num1 - num2;
+                    }
+                    break;
+                    
+                case '*':
+                    // Each factor at most maxNumber
+                    if (allowNegatives) {
+                        num1 = randomNumber(maxNumber, true);
+                        num2 = randomNumber(maxNumber, true);
+                    } else {
+                        num1 = Math.floor(Math.random() * (maxNumber + 1));
+                        num2 = Math.floor(Math.random() * (maxNumber + 1));
+                    }
+                    answer = num1 * num2;
+                    break;
+                    
+                case '/':
+                    // Max quotient approach
+                    if (allowNegatives) {
+                        // Generate quotient and divisor, then compute dividend
+                        let quotient = randomNumber(maxNumber, true);
+                        num2 = randomNumber(maxNumber, true);
+                        // Avoid division by zero
+                        while (num2 === 0) {
+                            num2 = randomNumber(maxNumber, true);
+                        }
+                        
+                        if (allowRemainders) {
+                            remainder = Math.floor(Math.random() * Math.abs(num2));
+                            // Remainder sign follows dividend sign
+                            num1 = quotient * num2 + (quotient >= 0 ? remainder : -remainder);
+                            remainder = Math.abs(remainder);
+                        } else {
+                            num1 = quotient * num2;
+                        }
+                        answer = quotient;
+                    } else {
+                        // Generate quotient and divisor
+                        let quotient = Math.floor(Math.random() * (maxNumber + 1));
+                        num2 = Math.floor(Math.random() * maxNumber) + 1; // 1 to maxNumber
+                        
+                        if (allowRemainders) {
+                            remainder = Math.floor(Math.random() * num2);
+                            num1 = quotient * num2 + remainder;
+                        } else {
+                            num1 = quotient * num2;
+                        }
+                        answer = quotient;
+                    }
+                    break;
+            }
+            
+            currentAnswer = answer;
+            currentRemainder = remainder;
+            
+            // Format display
+            let opSymbol = selectedOperation === '*' ? '×' : selectedOperation === '/' ? '÷' : selectedOperation;
+            let displayNum1 = num1 < 0 ? `(${num1})` : num1;
+            let displayNum2 = num2 < 0 ? `(${num2})` : num2;
+            
+            document.getElementById('problem-display').textContent = `${displayNum1} ${opSymbol} ${displayNum2} = ?`;
+            document.getElementById('answer-input').value = '';
+            document.getElementById('remainder-input').value = '';
+            
+            // Reset active input
+            activeInput = 'answer';
+            updateActiveInput();
+            
+            // Start timing
+            questionStartTime = Date.now();
+        }
+
+        // Input number from calculator
+        function inputNumber(num) {
+            const input = document.getElementById(activeInput === 'answer' ? 'answer-input' : 'remainder-input');
+            input.value += num;
+        }
+
+        // Toggle negative
+        function toggleNegative() {
+            const input = document.getElementById(activeInput === 'answer' ? 'answer-input' : 'remainder-input');
+            if (input.value.startsWith('-')) {
+                input.value = input.value.substring(1);
+            } else if (input.value !== '' && input.value !== '0') {
+                input.value = '-' + input.value;
+            } else if (input.value === '') {
+                input.value = '-';
+            }
+        }
+
+        // Backspace
+        function backspace() {
+            const input = document.getElementById(activeInput === 'answer' ? 'answer-input' : 'remainder-input');
+            input.value = input.value.slice(0, -1);
+        }
+
+        // Switch between answer and remainder input
+        function switchInput() {
+            activeInput = activeInput === 'answer' ? 'remainder' : 'answer';
+            updateActiveInput();
+        }
+
+        function updateActiveInput() {
+            document.getElementById('answer-input').classList.toggle('active-input', activeInput === 'answer');
+            document.getElementById('remainder-input').classList.toggle('active-input', activeInput === 'remainder');
+        }
+
+        // Submit answer
+        function submitAnswer() {
+            const answerInput = document.getElementById('answer-input').value;
+            const remainderInput = document.getElementById('remainder-input').value;
+            
+            if (answerInput === '' || (allowRemainders && remainderInput === '')) {
+                return;
+            }
+            
+            const userAnswer = parseInt(answerInput);
+            const userRemainder = allowRemainders ? parseInt(remainderInput) : 0;
+            
+            const isCorrect = userAnswer === currentAnswer && userRemainder === currentRemainder;
+            
+            if (isCorrect) {
+                showFeedback(true);
+                
+                // Calculate time (will subtract feedback time later)
+                const questionTime = Date.now() - questionStartTime;
+                totalTime += questionTime;
+                questionsAnswered++;
+                
+                // Check if timed mode is complete
+                if (currentMode === 'timed' && questionsAnswered >= numQuestions) {
+                    setTimeout(() => {
+                        totalTime -= feedbackTime; // Subtract all feedback display time
+                        showResults();
+                    }, FEEDBACK_DELAY_MS);
+                    feedbackTime += FEEDBACK_DELAY_MS;
+                } else {
+                    setTimeout(() => {
+                        generateProblem();
+                    }, FEEDBACK_DELAY_MS);
+                    feedbackTime += FEEDBACK_DELAY_MS;
+                }
+            } else {
+                showFeedback(false);
+            }
+        }
+
+        // Show feedback
+        function showFeedback(correct) {
+            const feedback = document.getElementById('feedback');
+            feedback.textContent = correct ? '✓' : '✗';
+            feedback.className = 'feedback ' + (correct ? 'correct' : 'incorrect');
+            feedback.style.display = 'block';
+            
+            setTimeout(() => {
+                feedback.style.display = 'none';
+            }, correct ? FEEDBACK_DELAY_MS : 500);
+        }
+
+        // Stop practice (for running/infinite modes)
+        function stopPractice() {
+            totalTime -= feedbackTime; // Subtract feedback display time
+            showResults();
+        }
+
+        // Show results
+        function showResults() {
+            document.getElementById('result-questions').textContent = questionsAnswered;
+            
+            const totalSeconds = Math.floor(totalTime / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            document.getElementById('result-time').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            const avgTime = questionsAnswered > 0 ? (totalTime / questionsAnswered / 1000).toFixed(1) : 0;
+            document.getElementById('result-avg').textContent = `${avgTime}s`;
+            
+            showScreen('results-screen');
+        }
+
+        // Play again with same settings
+        function playAgain() {
+            questionsAnswered = 0;
+            totalTime = 0;
+            feedbackTime = 0;
+            showScreen('practice-screen');
+            generateProblem();
+        }
+
+        // Reset game state
+        function resetGame() {
+            questionsAnswered = 0;
+            totalTime = 0;
+            feedbackTime = 0;
+            currentAnswer = null;
+            currentRemainder = null;
+        }
+
+        // Initialize
+        loadSavedTheme();
+    </script>
+</body>
+</html>
