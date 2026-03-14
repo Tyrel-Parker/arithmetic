@@ -30,8 +30,123 @@
         }
 
         .container {
-            max-width: 500px;
+            max-width: 960px;
             margin: 0 auto;
+        }
+
+        /* Non-home screens stay narrow and centered */
+        #practice-screen .card,
+        #results-screen .card,
+        #theme-screen .card,
+        #help-screen .card,
+        #theme-screen h1,
+        #help-screen h1 {
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Home screen two-column layout */
+        .home-layout {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        .home-main {
+            flex: 0 0 460px;
+        }
+
+        .home-records {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sidebar-card {
+            background: var(--card-color);
+            border-radius: 20px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-title {
+            color: var(--secondary-color);
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            margin: 0 0 12px 0;
+        }
+
+        .sidebar-op {
+            margin-bottom: 14px;
+        }
+
+        .sidebar-op:last-child {
+            margin-bottom: 0;
+        }
+
+        .sidebar-op-title {
+            font-weight: bold;
+            color: var(--secondary-color);
+            font-size: 15px;
+            border-bottom: 2px solid var(--background-color);
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+        }
+
+        .sidebar-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            font-size: 14px;
+            padding: 3px 0;
+            color: var(--text-color);
+        }
+
+        .sidebar-row-avg {
+            font-weight: bold;
+            min-width: 42px;
+        }
+
+        .sidebar-row-score {
+            color: #666;
+        }
+
+        .sidebar-empty {
+            font-size: 13px;
+            color: #aaa;
+            font-style: italic;
+            padding: 2px 0;
+        }
+
+        .clear-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 2px solid var(--error-color);
+            border-radius: 10px;
+            background: transparent;
+            color: var(--error-color);
+            cursor: pointer;
+            font-family: inherit;
+            margin-top: 4px;
+        }
+
+        .clear-btn:hover {
+            background: var(--error-color);
+            color: white;
+        }
+
+        @media (max-width: 720px) {
+            .home-layout {
+                flex-direction: column;
+            }
+            .home-main {
+                flex: none;
+                width: 100%;
+            }
         }
 
         .screen {
@@ -478,49 +593,61 @@
     <div class="container">
         <!-- Home Screen -->
         <div id="home-screen" class="screen active">
-            <h1>🔢 Math Practice! 🌟</h1>
-            
-            <div class="card">
-                <label for="max-number">Maximum Number:</label>
-                <input type="number" id="max-number" value="20" min="1" max="1000">
-            </div>
-
-            <div class="card">
-                <label>Choose Operation:</label>
-                <div class="operation-buttons">
-                    <button class="op-btn" data-op="+" onclick="selectOperation('+')">+</button>
-                    <button class="op-btn" data-op="-" onclick="selectOperation('-')">−</button>
-                    <button class="op-btn" data-op="*" onclick="selectOperation('*')">×</button>
-                    <button class="op-btn" data-op="/" onclick="selectOperation('/')">÷</button>
-                </div>
-                
-                <div class="checkbox-group">
-                    <input type="checkbox" id="allow-negatives">
-                    <label for="allow-negatives" style="margin: 0;">Allow ± (negative numbers)</label>
-                </div>
-                
-                <div class="checkbox-group" id="remainder-option" style="display: none;">
-                    <input type="checkbox" id="allow-remainders">
-                    <label for="allow-remainders" style="margin: 0;">Allow remainders</label>
-                </div>
-            </div>
-
-            <div class="card">
-                <label>Choose Mode:</label>
-                <div class="mode-buttons">
-                    <button class="mode-btn" onclick="startMode('timed')">⏱️ Timed (Set Questions)</button>
-                    <button class="mode-btn" onclick="startMode('infinite')">♾️ Infinite Practice</button>
-                    <button class="mode-btn" onclick="startMode('running')">📊 Running Average</button>
-                </div>
-                
-                <div class="question-count">
-                    <label for="num-questions">Questions for Timed Mode:</label>
-                    <input type="number" id="num-questions" value="20" min="1" max="1000">
-                </div>
-            </div>
-
             <button class="help-btn" onclick="showScreen('help-screen')">? Help</button>
             <button class="settings-btn" onclick="showScreen('theme-screen')">🎨</button>
+
+            <div class="home-layout">
+                <div class="home-main">
+                    <h1>🔢 Math Practice! 🌟</h1>
+
+                    <div class="card">
+                        <label for="max-number">Maximum Number:</label>
+                        <input type="number" id="max-number" value="20" min="1" max="1000">
+                    </div>
+
+                    <div class="card">
+                        <label>Choose Operation:</label>
+                        <div class="operation-buttons">
+                            <button class="op-btn" data-op="+" onclick="selectOperation('+')">+</button>
+                            <button class="op-btn" data-op="-" onclick="selectOperation('-')">−</button>
+                            <button class="op-btn" data-op="*" onclick="selectOperation('*')">×</button>
+                            <button class="op-btn" data-op="/" onclick="selectOperation('/')">÷</button>
+                        </div>
+
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="allow-negatives">
+                            <label for="allow-negatives" style="margin: 0;">Allow ± (negative numbers)</label>
+                        </div>
+
+                        <div class="checkbox-group" id="remainder-option" style="display: none;">
+                            <input type="checkbox" id="allow-remainders">
+                            <label for="allow-remainders" style="margin: 0;">Allow remainders</label>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <label>Choose Mode:</label>
+                        <div class="mode-buttons">
+                            <button class="mode-btn" onclick="startMode('timed')">⏱️ Timed (Set Questions)</button>
+                            <button class="mode-btn" onclick="startMode('infinite')">♾️ Infinite Practice</button>
+                            <button class="mode-btn" onclick="startMode('running')">📊 Running Average</button>
+                        </div>
+
+                        <div class="question-count">
+                            <label for="num-questions">Questions for Timed Mode:</label>
+                            <input type="number" id="num-questions" value="20" min="1" max="1000">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="home-records">
+                    <div class="sidebar-card">
+                        <div class="sidebar-title">🏆 Top 3 Records</div>
+                        <div id="sidebar-records"></div>
+                        <button class="clear-btn" onclick="clearAllRecords()">Clear All Records</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Help Screen -->
@@ -783,6 +910,7 @@
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
+            if (screenId === 'home-screen') renderSidebarRecords();
         }
 
         function goHome() {
@@ -1166,6 +1294,38 @@
 
         // Records
         const opNames = { '+': 'Addition', '-': 'Subtraction', '*': 'Multiplication', '/': 'Division' };
+        const opSymbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+
+        function renderSidebarRecords() {
+            const container = document.getElementById('sidebar-records');
+            let html = '';
+            for (const op of ['+', '-', '*', '/']) {
+                const records = JSON.parse(localStorage.getItem('mathRecords_' + op) || '[]');
+                html += `<div class="sidebar-op">
+                    <div class="sidebar-op-title">${opSymbols[op]} ${opNames[op]}</div>`;
+                if (records.length === 0) {
+                    html += `<div class="sidebar-empty">No records yet</div>`;
+                } else {
+                    const medals = ['🥇', '🥈', '🥉'];
+                    records.slice(0, 3).forEach((r, i) => {
+                        const pct = r.total > 0 ? Math.round(r.correct / r.total * 100) : 0;
+                        html += `<div class="sidebar-row">
+                            <span>${medals[i]}</span>
+                            <span class="sidebar-row-avg">${r.avg}s</span>
+                            <span class="sidebar-row-score">${r.correct}/${r.total} (${pct}%)</span>
+                        </div>`;
+                    });
+                }
+                html += `</div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function clearAllRecords() {
+            if (!confirm('Clear all high scores? This cannot be undone.')) return;
+            ['+', '-', '*', '/'].forEach(op => localStorage.removeItem('mathRecords_' + op));
+            renderSidebarRecords();
+        }
 
         function saveRecord(avgSeconds) {
             if (questionsAnswered === 0) return -1;
@@ -1266,6 +1426,7 @@
         // Initialize
         loadSavedTheme();
         loadSavedSettings();
+        renderSidebarRecords();
     </script>
 </body>
 </html>
