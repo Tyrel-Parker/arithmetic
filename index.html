@@ -364,6 +364,19 @@
             border-color: var(--success-color) !important;
             box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
         }
+
+        .countdown {
+            text-align: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--secondary-color);
+            margin: -5px 0 15px;
+            transition: color 0.3s;
+        }
+
+        .countdown.urgent {
+            color: var(--error-color);
+        }
     </style>
 </head>
 <body>
@@ -420,7 +433,8 @@
             
             <div class="card">
                 <div class="problem-display" id="problem-display">5 + 3 = ?</div>
-                
+                <div id="countdown" class="countdown">6</div>
+
                 <div class="answer-input">
                     <input type="text" class="answer-field" id="answer-input" readonly>
                     <div class="remainder-section" id="remainder-section" style="display: none;">
@@ -457,6 +471,9 @@
             <div class="card results">
                 <h2>🎉 Great Job! 🎉</h2>
                 
+                <div class="stat">
+                    Score: <span class="stat-value" id="result-score">0/0 - 0%</span>
+                </div>
                 <div class="stat">
                     Questions: <span class="stat-value" id="result-questions">0</span>
                 </div>
@@ -514,6 +531,7 @@
     <script>
         // ========== CONFIGURABLE VARIABLES ==========
         const FEEDBACK_DELAY_MS = 500; // Time to show green checkmark before next question
+        const QUESTION_TIME_MS = 6000; // Seconds per question before auto-fail
         // ============================================
 
         // Game state
@@ -523,17 +541,23 @@
         let allowNegatives = false;
         let allowRemainders = false;
         let numQuestions = 10;
-        
+
         // Current problem
         let currentAnswer = null;
         let currentRemainder = null;
         let activeInput = 'answer'; // 'answer' or 'remainder'
-        
+
         // Stats
         let questionsAnswered = 0;
+        let correctAnswers = 0;
         let totalTime = 0;
         let questionStartTime = 0;
         let feedbackTime = 0; // Time spent showing feedback to subtract
+
+        // Timer
+        let questionTimer = null;
+        let countdownInterval = null;
+        let timeRemaining = 0;
 
         // Themes
         const themes = {
@@ -609,6 +633,7 @@
         }
 
         function goHome() {
+            clearTimers();
             showScreen('home-screen');
             resetGame();
         }
@@ -636,9 +661,13 @@
             allowNegatives = document.getElementById('allow-negatives').checked;
             allowRemainders = document.getElementById('allow-remainders').checked && selectedOperation === '/';
             numQuestions = parseInt(document.getElementById('num-questions').value) || 10;
+
+            localStorage.setItem('mathMaxNumber', maxNumber);
+            localStorage.setItem('mathNumQuestions', numQuestions);
             
             // Reset stats
             questionsAnswered = 0;
+            correctAnswers = 0;
             totalTime = 0;
             feedbackTime = 0;
             
@@ -669,39 +698,42 @@
             
             switch (selectedOperation) {
                 case '+':
-                    // Generate numbers that add up to at most maxNumber (absolute value)
                     if (allowNegatives) {
-                        // For negatives, we need answer's absolute value <= maxNumber
+                        // Rejection sample: both operands in [-max,max], sum in [-max,max]
                         do {
                             num1 = randomNumber(maxNumber, true);
                             num2 = randomNumber(maxNumber, true);
                             answer = num1 + num2;
                         } while (Math.abs(answer) > maxNumber);
                     } else {
-                        num1 = Math.floor(Math.random() * (maxNumber + 1));
-                        num2 = Math.floor(Math.random() * (maxNumber - num1 + 1));
+                        // Rejection sample: both in [0,max], sum in [0,max] — uniform over valid pairs
+                        do {
+                            num1 = Math.floor(Math.random() * (maxNumber + 1));
+                            num2 = Math.floor(Math.random() * (maxNumber + 1));
+                        } while (num1 + num2 > maxNumber);
                         answer = num1 + num2;
                     }
                     break;
-                    
+
                 case '-':
                     if (allowNegatives) {
-                        // For negatives, answer's absolute value <= maxNumber
+                        // Rejection sample: both operands in [-max,max], difference in [-max,max]
                         do {
                             num1 = randomNumber(maxNumber, true);
                             num2 = randomNumber(maxNumber, true);
                             answer = num1 - num2;
                         } while (Math.abs(answer) > maxNumber);
                     } else {
-                        // Result must be positive
+                        // Pick two independent values in [0,max], put the larger on top
                         num1 = Math.floor(Math.random() * (maxNumber + 1));
-                        num2 = Math.floor(Math.random() * (num1 + 1));
+                        num2 = Math.floor(Math.random() * (maxNumber + 1));
+                        if (num2 > num1) { let t = num1; num1 = num2; num2 = t; }
                         answer = num1 - num2;
                     }
                     break;
-                    
+
                 case '*':
-                    // Each factor at most maxNumber
+                    // Each factor independently in [0,max]
                     if (allowNegatives) {
                         num1 = randomNumber(maxNumber, true);
                         num2 = randomNumber(maxNumber, true);
@@ -711,39 +743,37 @@
                     }
                     answer = num1 * num2;
                     break;
-                    
+
                 case '/':
-                    // Max quotient approach
                     if (allowNegatives) {
-                        // Generate quotient and divisor, then compute dividend
-                        let quotient = randomNumber(maxNumber, true);
+                        // Pick divisor, derive max quotient so |dividend| stays within maxNumber
                         num2 = randomNumber(maxNumber, true);
-                        // Avoid division by zero
-                        while (num2 === 0) {
-                            num2 = randomNumber(maxNumber, true);
-                        }
-                        
+                        while (num2 === 0) num2 = randomNumber(maxNumber, true);
+                        const absMax = Math.floor(maxNumber / Math.abs(num2));
+                        let quotientN = randomNumber(absMax, true);
                         if (allowRemainders) {
                             remainder = Math.floor(Math.random() * Math.abs(num2));
-                            // Remainder sign follows dividend sign
-                            num1 = quotient * num2 + (quotient >= 0 ? remainder : -remainder);
+                            num1 = quotientN * num2 + (quotientN >= 0 ? remainder : -remainder);
                             remainder = Math.abs(remainder);
                         } else {
-                            num1 = quotient * num2;
+                            num1 = quotientN * num2;
                         }
-                        answer = quotient;
+                        answer = quotientN;
                     } else {
-                        // Generate quotient and divisor
-                        let quotient = Math.floor(Math.random() * (maxNumber + 1));
-                        num2 = Math.floor(Math.random() * maxNumber) + 1; // 1 to maxNumber
-                        
                         if (allowRemainders) {
-                            remainder = Math.floor(Math.random() * num2);
-                            num1 = quotient * num2 + remainder;
+                            // Pick dividend and divisor directly; both stay within maxNumber
+                            num1 = Math.floor(Math.random() * (maxNumber + 1));
+                            num2 = Math.floor(Math.random() * maxNumber) + 1;
+                            answer = Math.floor(num1 / num2);
+                            remainder = num1 % num2;
                         } else {
-                            num1 = quotient * num2;
+                            // Pick divisor then cap quotient so dividend stays within maxNumber
+                            num2 = Math.floor(Math.random() * maxNumber) + 1;
+                            const maxQuotient = Math.floor(maxNumber / num2);
+                            const quotientP = Math.floor(Math.random() * (maxQuotient + 1));
+                            num1 = quotientP * num2;
+                            answer = quotientP;
                         }
-                        answer = quotient;
                     }
                     break;
             }
@@ -763,9 +793,60 @@
             // Reset active input
             activeInput = 'answer';
             updateActiveInput();
-            
-            // Start timing
+
+            // Start timing and countdown
             questionStartTime = Date.now();
+            startQuestionTimer();
+        }
+
+        // Question timer
+        function clearTimers() {
+            clearTimeout(questionTimer);
+            clearInterval(countdownInterval);
+            questionTimer = null;
+            countdownInterval = null;
+        }
+
+        function startQuestionTimer() {
+            clearTimers();
+            timeRemaining = QUESTION_TIME_MS / 1000;
+            updateCountdown();
+            countdownInterval = setInterval(() => {
+                timeRemaining--;
+                updateCountdown();
+            }, 1000);
+            questionTimer = setTimeout(timeExpired, QUESTION_TIME_MS);
+        }
+
+        function updateCountdown() {
+            const el = document.getElementById('countdown');
+            el.textContent = timeRemaining;
+            el.classList.toggle('urgent', timeRemaining <= 2);
+        }
+
+        function timeExpired() {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+
+            // Show the correct answer so the child can see it
+            document.getElementById('answer-input').value = currentAnswer;
+            if (allowRemainders) document.getElementById('remainder-input').value = currentRemainder;
+
+            const questionTime = Date.now() - questionStartTime;
+            totalTime += questionTime;
+            questionsAnswered++;
+            // correctAnswers NOT incremented — this question is marked failed
+
+            showFeedback(false);
+
+            setTimeout(() => {
+                if (currentMode === 'timed' && questionsAnswered >= numQuestions) {
+                    totalTime -= feedbackTime;
+                    showResults();
+                } else {
+                    generateProblem();
+                }
+            }, 500);
         }
 
         // Input number from calculator
@@ -818,8 +899,10 @@
             const isCorrect = userAnswer === currentAnswer && userRemainder === currentRemainder;
             
             if (isCorrect) {
+                clearTimers();
+                correctAnswers++;
                 showFeedback(true);
-                
+
                 // Calculate time (will subtract feedback time later)
                 const questionTime = Date.now() - questionStartTime;
                 totalTime += questionTime;
@@ -857,12 +940,15 @@
 
         // Stop practice (for running/infinite modes)
         function stopPractice() {
+            clearTimers();
             totalTime -= feedbackTime; // Subtract feedback display time
             showResults();
         }
 
         // Show results
         function showResults() {
+            const pct = questionsAnswered > 0 ? Math.round(correctAnswers / questionsAnswered * 100) : 0;
+            document.getElementById('result-score').textContent = `${correctAnswers}/${questionsAnswered} - ${pct}%`;
             document.getElementById('result-questions').textContent = questionsAnswered;
             
             const totalSeconds = Math.floor(totalTime / 1000);
@@ -879,6 +965,7 @@
         // Play again with same settings
         function playAgain() {
             questionsAnswered = 0;
+            correctAnswers = 0;
             totalTime = 0;
             feedbackTime = 0;
             showScreen('practice-screen');
@@ -887,15 +974,25 @@
 
         // Reset game state
         function resetGame() {
+            clearTimers();
             questionsAnswered = 0;
+            correctAnswers = 0;
             totalTime = 0;
             feedbackTime = 0;
             currentAnswer = null;
             currentRemainder = null;
         }
 
+        function loadSavedSettings() {
+            const maxN = localStorage.getItem('mathMaxNumber');
+            const numQ = localStorage.getItem('mathNumQuestions');
+            if (maxN) document.getElementById('max-number').value = maxN;
+            if (numQ) document.getElementById('num-questions').value = numQ;
+        }
+
         // Initialize
         loadSavedTheme();
+        loadSavedSettings();
     </script>
 </body>
 </html>
