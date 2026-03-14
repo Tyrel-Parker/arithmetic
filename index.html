@@ -377,6 +377,16 @@
         .countdown.urgent {
             color: var(--error-color);
         }
+
+        .confetti-piece {
+            position: fixed;
+            top: 0;
+            left: 0;
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 998;
+            will-change: transform, opacity;
+        }
     </style>
 </head>
 <body>
@@ -644,9 +654,8 @@
             document.querySelectorAll('.op-btn').forEach(btn => {
                 btn.classList.toggle('selected', btn.dataset.op === op);
             });
-            
-            // Show remainder option only for division
             document.getElementById('remainder-option').style.display = op === '/' ? 'block' : 'none';
+            localStorage.setItem('mathOperation', op);
         }
 
         // Start game mode
@@ -901,6 +910,7 @@
             if (isCorrect) {
                 clearTimers();
                 correctAnswers++;
+                launchConfetti();
                 showFeedback(true);
 
                 // Calculate time (will subtract feedback time later)
@@ -924,6 +934,64 @@
             } else {
                 showFeedback(false);
             }
+        }
+
+        // Confetti celebration
+        function launchConfetti() {
+            const colors = ['#FF6B9D', '#4FC3F7', '#81C784', '#FFB74D', '#BA68C8', '#F06292', '#FF5722', '#FFEB3B'];
+            const particles = [];
+            const cx = window.innerWidth / 2;
+            const cy = window.innerHeight / 2;
+
+            for (let i = 0; i < 70; i++) {
+                const el = document.createElement('div');
+                el.className = 'confetti-piece';
+                el.style.background = colors[Math.floor(Math.random() * colors.length)];
+                const size = 8 + Math.random() * 10;
+                el.style.width = size + 'px';
+                el.style.height = size + 'px';
+                document.body.appendChild(el);
+
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 200 + Math.random() * 400;
+                particles.push({
+                    el,
+                    x: cx + (Math.random() - 0.5) * 60,
+                    y: cy + (Math.random() - 0.5) * 60,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 350,
+                    rotation: Math.random() * 360,
+                    rotSpeed: (Math.random() - 0.5) * 800,
+                    life: 1
+                });
+            }
+
+            let last = null;
+            function animate(ts) {
+                if (!last) last = ts;
+                const dt = Math.min((ts - last) / 1000, 0.05);
+                last = ts;
+
+                let alive = false;
+                for (const p of particles) {
+                    if (p.life <= 0) continue;
+                    alive = true;
+                    p.vy += 900 * dt;
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.rotation += p.rotSpeed * dt;
+                    p.life = Math.max(0, p.life - dt * 1.1);
+                    p.el.style.transform = `translate(${p.x}px, ${p.y}px) rotate(${p.rotation}deg)`;
+                    p.el.style.opacity = p.life;
+                }
+
+                if (alive) {
+                    requestAnimationFrame(animate);
+                } else {
+                    particles.forEach(p => p.el.remove());
+                }
+            }
+            requestAnimationFrame(animate);
         }
 
         // Show feedback
@@ -986,8 +1054,10 @@
         function loadSavedSettings() {
             const maxN = localStorage.getItem('mathMaxNumber');
             const numQ = localStorage.getItem('mathNumQuestions');
+            const op = localStorage.getItem('mathOperation');
             if (maxN) document.getElementById('max-number').value = maxN;
             if (numQ) document.getElementById('num-questions').value = numQ;
+            if (op) selectOperation(op);
         }
 
         // Initialize
