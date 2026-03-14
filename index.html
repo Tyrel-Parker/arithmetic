@@ -378,6 +378,91 @@
             color: var(--error-color);
         }
 
+        .records-title {
+            text-align: center;
+            color: var(--secondary-color);
+            margin: 0 0 12px 0;
+            font-size: 20px;
+        }
+
+        .record-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            border-radius: 8px;
+            margin: 4px 0;
+            background: var(--background-color);
+            font-size: 14px;
+            gap: 8px;
+        }
+
+        .record-row.new-record {
+            background: var(--primary-color);
+            color: white;
+            font-weight: bold;
+        }
+
+        .record-rank {
+            font-size: 18px;
+            min-width: 28px;
+            text-align: center;
+        }
+
+        .record-avg {
+            font-weight: bold;
+            min-width: 48px;
+        }
+
+        .record-score {
+            flex: 1;
+            text-align: center;
+        }
+
+        .record-detail {
+            color: #999;
+            font-size: 12px;
+            text-align: right;
+        }
+
+        .record-row.new-record .record-detail {
+            color: rgba(255,255,255,0.8);
+        }
+
+        .help-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            background: var(--secondary-color);
+            color: var(--button-text);
+            cursor: pointer;
+        }
+
+        .help-section {
+            margin-bottom: 15px;
+        }
+
+        .help-section h3 {
+            color: var(--secondary-color);
+            margin: 0 0 6px 0;
+            font-size: 18px;
+        }
+
+        .help-section p, .help-section li {
+            color: var(--text-color);
+            font-size: 15px;
+            margin: 4px 0;
+            line-height: 1.5;
+        }
+
+        .help-section ul {
+            padding-left: 20px;
+        }
+
         .confetti-piece {
             position: fixed;
             top: 0;
@@ -434,7 +519,59 @@
                 </div>
             </div>
 
+            <button class="help-btn" onclick="showScreen('help-screen')">? Help</button>
             <button class="settings-btn" onclick="showScreen('theme-screen')">🎨</button>
+        </div>
+
+        <!-- Help Screen -->
+        <div id="help-screen" class="screen">
+            <button class="nav-btn" onclick="showScreen('home-screen')">← Back</button>
+
+            <h1>How to Play</h1>
+
+            <div class="card">
+                <div class="help-section">
+                    <h3>Setting Up</h3>
+                    <ul>
+                        <li>Set the <strong>Maximum Number</strong> to control how hard the problems are. For example, max 10 keeps things easy; max 20 is harder.</li>
+                        <li>Pick an operation: <strong>+</strong> add, <strong>−</strong> subtract, <strong>×</strong> multiply, <strong>÷</strong> divide.</li>
+                        <li>For division, you can turn on <strong>Allow remainders</strong> to practice dividing with leftovers (e.g. 7 ÷ 2 = 3 R 1).</li>
+                        <li>Turn on <strong>Allow ±</strong> to include negative numbers.</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h3>Choosing a Mode</h3>
+                    <ul>
+                        <li><strong>⏱️ Timed</strong> — Answer a set number of questions, then see your score.</li>
+                        <li><strong>♾️ Infinite</strong> — Keep going as long as you want. Press Stop when you're done.</li>
+                        <li><strong>📊 Running Average</strong> — Same as Infinite, but your average time per question is tracked.</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h3>Answering Questions</h3>
+                    <ul>
+                        <li>Use the number pad on screen to type your answer, then press <strong>✓</strong>.</li>
+                        <li>You have <strong>6 seconds</strong> to answer each question — watch the countdown!</li>
+                        <li>If the timer runs out, the correct answer is shown. Press <strong>✓</strong> to move on.</li>
+                        <li>Wrong answers show <strong>✗</strong> — keep trying until you get it or time runs out.</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h3>Your Score</h3>
+                    <p>At the end you'll see how many you got right out of the total, like <strong>8/10 - 80%</strong>. Try to beat your best!</p>
+                </div>
+
+                <div class="help-section">
+                    <h3>Other Buttons</h3>
+                    <ul>
+                        <li><strong>🎨</strong> — Change the color theme.</li>
+                        <li><strong>🏠 Home</strong> — Go back to the main screen at any time.</li>
+                    </ul>
+                </div>
+            </div>
         </div>
 
         <!-- Practice Screen -->
@@ -496,6 +633,11 @@
                 
                 <button class="action-btn" onclick="playAgain()">🔄 Play Again</button>
                 <button class="action-btn" onclick="goHome()">🏠 Home</button>
+            </div>
+
+            <div class="card">
+                <h2 class="records-title" id="records-title">🏆 Top Times</h2>
+                <div id="records-list"></div>
             </div>
         </div>
 
@@ -568,6 +710,7 @@
         let questionTimer = null;
         let countdownInterval = null;
         let timeRemaining = 0;
+        let awaitingAcknowledge = false;
 
         // Themes
         const themes = {
@@ -846,16 +989,12 @@
             questionsAnswered++;
             // correctAnswers NOT incremented — this question is marked failed
 
+            document.getElementById('countdown').textContent = '✓';
+            document.getElementById('countdown').classList.remove('urgent');
             showFeedback(false);
 
-            setTimeout(() => {
-                if (currentMode === 'timed' && questionsAnswered >= numQuestions) {
-                    totalTime -= feedbackTime;
-                    showResults();
-                } else {
-                    generateProblem();
-                }
-            }, 500);
+            // Wait for the child to press ✓ before moving on
+            awaitingAcknowledge = true;
         }
 
         // Input number from calculator
@@ -895,9 +1034,21 @@
 
         // Submit answer
         function submitAnswer() {
+            // After a timeout the child must press ✓ to acknowledge and continue
+            if (awaitingAcknowledge) {
+                awaitingAcknowledge = false;
+                if (currentMode === 'timed' && questionsAnswered >= numQuestions) {
+                    totalTime -= feedbackTime;
+                    showResults();
+                } else {
+                    generateProblem();
+                }
+                return;
+            }
+
             const answerInput = document.getElementById('answer-input').value;
             const remainderInput = document.getElementById('remainder-input').value;
-            
+
             if (answerInput === '' || (allowRemainders && remainderInput === '')) {
                 return;
             }
@@ -1013,20 +1164,71 @@
             showResults();
         }
 
+        // Records
+        const opNames = { '+': 'Addition', '-': 'Subtraction', '*': 'Multiplication', '/': 'Division' };
+
+        function saveRecord(avgSeconds) {
+            if (questionsAnswered === 0) return -1;
+            const key = 'mathRecords_' + selectedOperation;
+            const records = JSON.parse(localStorage.getItem(key) || '[]');
+            const entry = {
+                avg: avgSeconds,
+                correct: correctAnswers,
+                total: questionsAnswered,
+                max: maxNumber,
+                date: new Date().toLocaleDateString()
+            };
+            records.push(entry);
+            records.sort((a, b) => a.avg - b.avg);
+            const rank = records.indexOf(entry);
+            if (records.length > 10) records.splice(10);
+            localStorage.setItem(key, JSON.stringify(records));
+            return rank < 10 ? rank : -1;
+        }
+
+        function renderRecords(newRank) {
+            const key = 'mathRecords_' + selectedOperation;
+            const records = JSON.parse(localStorage.getItem(key) || '[]');
+            const opName = opNames[selectedOperation] || selectedOperation;
+            document.getElementById('records-title').textContent = `🏆 Top Times — ${opName}`;
+
+            const list = document.getElementById('records-list');
+            if (records.length === 0) {
+                list.innerHTML = '<p style="text-align:center;color:#999;">No records yet!</p>';
+                return;
+            }
+
+            const medals = ['🥇', '🥈', '🥉'];
+            list.innerHTML = records.map((r, i) => {
+                const isNew = i === newRank;
+                const rank = medals[i] || `${i + 1}.`;
+                const pct = r.total > 0 ? Math.round(r.correct / r.total * 100) : 0;
+                return `<div class="record-row${isNew ? ' new-record' : ''}">
+                    <span class="record-rank">${rank}</span>
+                    <span class="record-avg">${r.avg}s</span>
+                    <span class="record-score">${r.correct}/${r.total} — ${pct}%</span>
+                    <span class="record-detail">max ${r.max}<br>${r.date}</span>
+                </div>`;
+            }).join('');
+        }
+
         // Show results
         function showResults() {
             const pct = questionsAnswered > 0 ? Math.round(correctAnswers / questionsAnswered * 100) : 0;
             document.getElementById('result-score').textContent = `${correctAnswers}/${questionsAnswered} - ${pct}%`;
             document.getElementById('result-questions').textContent = questionsAnswered;
-            
+
             const totalSeconds = Math.floor(totalTime / 1000);
             const minutes = Math.floor(totalSeconds / 60);
             const seconds = totalSeconds % 60;
             document.getElementById('result-time').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            
-            const avgTime = questionsAnswered > 0 ? (totalTime / questionsAnswered / 1000).toFixed(1) : 0;
-            document.getElementById('result-avg').textContent = `${avgTime}s`;
-            
+
+            const avgSeconds = parseFloat(questionsAnswered > 0 ? (totalTime / questionsAnswered / 1000).toFixed(1) : 0);
+            document.getElementById('result-avg').textContent = `${avgSeconds}s`;
+
+            const newRank = saveRecord(avgSeconds);
+            renderRecords(newRank);
+
             showScreen('results-screen');
         }
 
@@ -1043,6 +1245,7 @@
         // Reset game state
         function resetGame() {
             clearTimers();
+            awaitingAcknowledge = false;
             questionsAnswered = 0;
             correctAnswers = 0;
             totalTime = 0;
